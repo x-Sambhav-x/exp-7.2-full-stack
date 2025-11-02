@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>🛒 Shopping Cart - Redux Toolkit Example</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/redux@4.2.1/dist/redux.js" crossorigin></script>
+  <script src="https://unpkg.com/@reduxjs/toolkit@1.9.7/dist/redux-toolkit.umd.js" crossorigin></script>
+  <script src="https://unpkg.com/react-redux@8.1.1/dist/react-redux.js" crossorigin></script>
+  <style>
+    body { font-family: Arial; background:#f7f7f7; padding:30px; }
+    h2 { color:#333; }
+    .product, .cart-item {
+      display:flex; justify-content:space-between;
+      background:#fff; padding:10px 15px; margin:8px 0;
+      border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);
+    }
+    button { padding:5px 10px; border:none; border-radius:5px; cursor:pointer; }
+    button.add { background:#28a745; color:white; }
+    button.remove { background:#dc3545; color:white; }
+    .summary { background:#fff; padding:15px; margin-top:20px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    const { configureStore, createSlice } = window.RTK;
+    const { Provider, useSelector, useDispatch } = window.ReactRedux;
+    const { useState } = React;
+
+    // ======================
+    // Redux Slice Definition
+    // ======================
+    const cartSlice = createSlice({
+      name: "cart",
+      initialState: { items: [] },
+      reducers: {
+        addItem: (state, action) => {
+          const existing = state.items.find(i => i.id === action.payload.id);
+          if (existing) {
+            existing.quantity += 1;
+          } else {
+            state.items.push({ ...action.payload, quantity: 1 });
+          }
+        },
+        removeItem: (state, action) => {
+          const index = state.items.findIndex(i => i.id === action.payload);
+          if (index >= 0) {
+            if (state.items[index].quantity > 1) {
+              state.items[index].quantity -= 1;
+            } else {
+              state.items.splice(index, 1);
+            }
+          }
+        },
+        clearCart: (state) => {
+          state.items = [];
+        }
+      }
+    });
+
+    const store = configureStore({
+      reducer: { cart: cartSlice.reducer }
+    });
+
+    const { addItem, removeItem, clearCart } = cartSlice.actions;
+
+    // ======================
+    // React Components
+    // ======================
+
+    function ProductList() {
+      const dispatch = useDispatch();
+      const products = [
+        { id: 1, name: "Apple", price: 30 },
+        { id: 2, name: "Banana", price: 10 },
+        { id: 3, name: "Orange", price: 20 },
+      ];
+
+      return (
+        React.createElement("div", null,
+          React.createElement("h2", null, "🛍️ Products"),
+          products.map(p =>
+            React.createElement("div", { key: p.id, className: "product" },
+              React.createElement("span", null, `${p.name} - ₹${p.price}`),
+              React.createElement("button", { className:"add", onClick: () => dispatch(addItem(p)) }, "Add to Cart")
+            )
+          )
+        )
+      );
+    }
+
+    function Cart() {
+      const dispatch = useDispatch();
+      const items = useSelector(state => state.cart.items);
+      const total = items.reduce((acc, i) => acc + i.price * i.quantity, 0);
+
+      return (
+        React.createElement("div", null,
+          React.createElement("h2", null, "🛒 Your Cart"),
+          items.length === 0
+            ? React.createElement("p", null, "Cart is empty")
+            : items.map(i =>
+              React.createElement("div", { key: i.id, className:"cart-item" },
+                React.createElement("span", null, `${i.name} x${i.quantity}`),
+                React.createElement("div", null,
+                  React.createElement("button", { className:"remove", onClick: () => dispatch(removeItem(i.id)) }, "-"),
+                  React.createElement("button", { className:"add", onClick: () => dispatch(addItem(i)) }, "+")
+                )
+              )
+            ),
+          items.length > 0 && React.createElement("div", { className:"summary" },
+            React.createElement("h3", null, `Total: ₹${total}`),
+            React.createElement("button", { className:"remove", onClick: () => dispatch(clearCart()) }, "Clear Cart")
+          )
+        )
+      );
+    }
+
+    function App() {
+      return (
+        React.createElement("div", null,
+          React.createElement(ProductList),
+          React.createElement("hr"),
+          React.createElement(Cart)
+        )
+      );
+    }
+
+    // ======================
+    // Render the Application
+    // ======================
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(
+      React.createElement(Provider, { store },
+        React.createElement(App)
+      )
+    );
+  </script>
+</body>
+</html>
